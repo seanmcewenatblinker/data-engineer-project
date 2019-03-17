@@ -84,7 +84,6 @@ class MovieDataProcessor(object):
         """Main process to process all movie database files and transform them into
         new schema in s3 destination
 
-
         Args:
             credits_s3_source: s3 source where credits.csv file is located
             keywords_s3_source: s3 source where keywords.csv file is located

@@ -116,6 +116,7 @@ class MovieDataProcessor(object):
 
         """
         df = self._read_df_csv(source=s3_source)
+        df_collection = {}
 
         # Instantiate preliminary dataframes
         casts_df = df.select(
@@ -129,7 +130,7 @@ class MovieDataProcessor(object):
                         self.CREDITS_SCHEMA)).alias("crews_array"))
 
         # Create final dataframes for writing
-        final_movie_characters_df = casts_df.select(
+        df_collection["movie_characters"] = casts_df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 col("casts_array")["cast_id"].alias("cast_id"),
                 col("casts_array")["order"].alias("cast_order"),
@@ -140,7 +141,7 @@ class MovieDataProcessor(object):
             .orderBy("id")\
             .repartition(1)
 
-        final_actors_df = casts_df.select(
+        df_collection["actors"] = casts_df.select(
                 col("casts_array")["id"].alias("id"),
                 col("casts_array")["name"].alias("name"),
                 col("casts_array")["profile_path"].alias("profile_path"))\
@@ -149,7 +150,7 @@ class MovieDataProcessor(object):
             .orderBy(col("casts_array")["id"])\
             .repartition(1)
 
-        final_movie_crews_df = crews_df.select(
+        df_collection["movie_crews"] = crews_df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 col("crews_array")["department"].alias("department"),
                 col("crews_array")["credit_id"].alias("credit_id"),
@@ -158,7 +159,7 @@ class MovieDataProcessor(object):
             .orderBy("id")\
             .repartition(1)
 
-        final_crew_jobs_df = crews_df.select(
+        df_collection["crews"] = crews_df.select(
                 col("crews_array")["id"].alias("id"),
                 col("crews_array")["name"].alias("name"),
                 col("crews_array")["profile_path"].alias("profile_path"))\
@@ -168,15 +169,7 @@ class MovieDataProcessor(object):
             .repartition(1)
 
         # Write dataframes to s3 destinations
-        self._write_df_json(final_movie_characters_df,
-                            self.base_s3_destination.format(
-                                name="movie_characters"))
-        self._write_df_json(final_actors_df,
-                            self.base_s3_destination.format(name="actors"))
-        self._write_df_json(final_movie_crews_df,
-                            self.base_s3_destination.format(name="movie_crews"))
-        self._write_df_json(final_crew_jobs_df,
-                            self.base_s3_destination.format(name="crews"))
+        self._write_multi_df_json(df_collection)
 
     def process_keywords_file(self, s3_source):
         """Process movies database keywords.csv and transform into new schema
@@ -189,6 +182,7 @@ class MovieDataProcessor(object):
 
         """
         df = self._read_df_csv(s3_source)
+        df_collection = {}
 
         # Create intermediate dataframe
         transformed_df = df.select(
@@ -197,26 +191,22 @@ class MovieDataProcessor(object):
                         self.COMMON_BASE_SCHEMA)).alias("keywords_array"))
 
         # Create final dataframes for writing
-        final_keywords_df = transformed_df.select(
+        df_collection["keywords"] = transformed_df.select(
                 col("keywords_array")["id"].alias("id"),
                 col("keywords_array")["name"].alias("name"))\
             .distinct()\
             .orderBy(col("id"))\
             .repartition(1)
 
-        final_keyword_movies_df = transformed_df.select(
+        df_collection["keyword_movies"] = transformed_df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 col("keywords_array")["id"].alias("keyword_id"))\
             .orderBy(col("id"))\
             .repartition(1)
 
         # Write dataframes to s3 destinations
-        self._write_df_json(final_keywords_df,
-                            self.base_s3_destination.format(name="keywords"))
-        self._write_df_json(final_keyword_movies_df,
-                            self.base_s3_destination.format(name="movie_keywords"))
+        self._write_multi_df_json(df_collection)
 
-    # Write dataframes to s3 destinations
     def process_links_file(self, s3_source):
         """Process movies database links.csv or links_small.csv and
         transform into new schema
@@ -290,6 +280,7 @@ class MovieDataProcessor(object):
 
         """
         df = self._read_df_csv(s3_source)
+        df_collection = {}
 
         # Create intermediate dataframes
         collections_df = df.select(
@@ -308,13 +299,13 @@ class MovieDataProcessor(object):
             .distinct()
 
         # Create final dataframes for writing
-        final_genres_df = genres_df.select(
+        df_collection["genres"] = genres_df.select(
                 col('genres_array')["id"].alias("id"),
                 col('genres_array')["name"].alias("name"))\
             .orderBy(col("id"))\
             .repartition(1)
 
-        final_collections_df = collections_df.select(
+        df_collection["collections"] = collections_df.select(
                 col('collections_array')["id"].alias("id"),
                 col('collections_array')["name"].alias("name"),
                 col('collections_array')["poster_path"].alias("poster_path"),
@@ -322,34 +313,34 @@ class MovieDataProcessor(object):
             .orderBy(col("id")) \
             .repartition(1)
 
-        final_production_companies_df = production_companies_df.select(
+        df_collection["production_companies"] = production_companies_df.select(
                 col('production_companies_array')["id"].alias("id"),
                 col('production_companies_array')["name"].alias("name"))\
             .orderBy(col("id"))\
             .repartition(1)
 
-        final_movies_collections_df = df.select(
+        df_collection["movie_collections"] = df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 from_json(col("belongs_to_collection"),
                           self.COLLECTIONS_SCHEMA)["id"].alias("collection_id"))\
             .orderBy(col("movie_id"))\
             .repartition(1)
 
-        final_movies_genres_df = df.select(
+        df_collection["movies_genres"] = df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 explode(from_json(col("genres"),
                         self.COMMON_BASE_SCHEMA)["id"]).alias("genre_id"))\
             .orderBy(col("movie_id"))\
             .repartition(1)
 
-        final_movie_production_companies_df = df.select(
+        df_collection["movie_production_companies"] = df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 explode(from_json(col("production_companies"),
                         self.COMMON_BASE_SCHEMA)["id"]).alias("production_company_id"))\
             .orderBy(col("movie_id"))\
             .repartition(1)
 
-        final_movies_df = df.select(
+        df_collection["movies"] = df.select(
                 col("id").cast(IntegerType()).alias("id"),
                 col("adult").alias("adult"),
                 col("budget").cast(FloatType()).cast(IntegerType()).alias("budget"),
@@ -375,28 +366,7 @@ class MovieDataProcessor(object):
             .repartition(1)
 
         # Write dataframes to s3 destinations
-        self._write_df_json(final_genres_df,
-                            self.base_s3_destination.format(name="genres"))
-        self._write_df_json(final_collections_df,
-                            self.base_s3_destination.format(name="collections"))
-        self._write_df_json(final_production_companies_df,
-                            self.base_s3_destination.format(
-                                name="production_companies"))
-        self._write_df_json(final_movies_collections_df,
-                            self.base_s3_destination.format(
-                                name="movie_collections"))
-        self._write_df_json(final_movies_genres_df,
-                            self.base_s3_destination.format(
-                                name="movie_genres"))
-        self._write_df_json(final_movie_production_companies_df,
-                            self.base_s3_destination.format(
-                                name="movie_production_companies"))
-        self._write_df_json(final_movies_collections_df,
-                            self.base_s3_destination.format(
-                                name="movie_collections"))
-        self._write_df_json(final_movies_df,
-                            self.base_s3_destination.format(
-                                name="movies"))
+        self._write_multi_df_json(df_collection)
 
     def _read_df_csv(self, source):
         """Helper method to read csv source file from s3
@@ -417,7 +387,7 @@ class MovieDataProcessor(object):
         """Helper method to write dataframe to json to s3 destination
 
         Args:
-            destination: s3 destination where dataframe is being written
+            destination (str): s3 destination where dataframe is being written
 
         Returns:
             None
@@ -427,6 +397,20 @@ class MovieDataProcessor(object):
             .option("compression", "gzip")\
             .mode("overwrite")\
             .json(destination)
+
+    def _write_multi_df_json(self, df_collection):
+        """Helper method to write multiple dataframes to json to s3 destination
+
+        Args:
+            df_colleciton (dict): s3 destination where dataframe is being written
+
+        Returns:
+            None
+
+        """
+        for key, df in df_collection.items():
+            self._write_df_json(df,
+                                self.base_s3_destination.format(name=key))
 
 
 if __name__ == "__main__":

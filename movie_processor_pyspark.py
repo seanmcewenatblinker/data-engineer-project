@@ -108,6 +108,7 @@ class MovieDataProcessor(object):
 
     def process_credits_file(self, s3_source):
         """Process movies database credits.csv and transform into new schema
+
         Args:
             s3_source: s3 source where credits.csv file is located
 

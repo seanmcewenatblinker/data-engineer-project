@@ -52,3 +52,40 @@ I will be sending the `EMR CLUSTER ID` along with the following variables in a p
 
 The whole process takes about five minutes and you can check the results in the S3 path you 
 provided within the `guild-test-production` bucket.  Each table has it's own prefix (folder).
+
+### Task 3: REST API Design
+
+I will have a moment of honesty, I have only designed one REST API in my career, but definitely learned 
+a lot from it.  However, this is still my weakest area.  I will try to touch on all of your points.
+
+Beginning with the data model, I have found, in my experience, that relational data models provide solid flexibility 
+for creating various API endpoints for various reasons.  I would design the API similarly to how the data model is designed. 
+For example, I could create more flexible API endpoints that won't take too much work incremental on my end.
+
+My main movies API endpoint to pull movies with main metadata from the movies relations and 
+possibly the various movie_<RELATIONSHIP> tables could be:
+```bash
+/api/v2/movies/{movie_id}/movies.json
+```
+I could create more flexible endpoints to pull the various metadata associated with each movie such as:
+
+```bash
+/api/v2/movies/{movie_id}/genres.json
+```
+
+In regards to where I would store the tables I create, I would probably use a small AWS RDS instance with a MySQL or Postgres
+engine.  I could benefit from this because I can add further data integrity checks such and primary keys and foreign constraints.
+I could also enhance the performance of the API by specifying indexes.  A NoSQL approach such as storing these tables in 
+AWS DynamoDB could be an approach as well, but given the number of relations in my data model, it would not be my first choice.
+
+To create the API service, most of my experience has been with Java, specifically the Spring Boot framework (web starter pack).
+I like the type safety of Java for developing resilient production services and the Spring Boot starters really make it easy to
+develop production ready code with a smaller investment.  I will run the service in a Docker container and use
+some sort of of CI/CD software such as **Travis CI** or **CircleCI**.  At the core of the production environment would be
+some sort of container orchestration software such as Nomad or Kubernetes based on my experience.
+
+When it came to resiliency and monitoring I would likely have to work with a DevOps professional to help me monitor.  I 
+would usually ask them how to configure the service to stay up and potentially alert me if something is wrong or read documentation
+they have provided.
+
+

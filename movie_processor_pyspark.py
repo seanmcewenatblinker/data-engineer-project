@@ -198,7 +198,7 @@ class MovieDataProcessor(object):
             .orderBy(col("id"))\
             .repartition(1)
 
-        df_collection["keyword_movies"] = transformed_df.select(
+        df_collection["movie_keywords"] = transformed_df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 col("keywords_array")["id"].alias("keyword_id"))\
             .orderBy(col("id"))\
@@ -326,7 +326,7 @@ class MovieDataProcessor(object):
             .orderBy(col("movie_id"))\
             .repartition(1)
 
-        df_collection["movies_genres"] = df.select(
+        df_collection["movie_genres"] = df.select(
                 col("id").cast(IntegerType()).alias("movie_id"),
                 explode(from_json(col("genres"),
                         self.COMMON_BASE_SCHEMA)["id"]).alias("genre_id"))\

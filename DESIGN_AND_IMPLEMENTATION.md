@@ -166,3 +166,13 @@ so I could potentially parallelize the load if the data files got large enough.
     * user_id - int
     * movie_id - int    
     * rating - float
+    
+##### Follow-up: If I had more time
+I wasn't able to do everything I would want in building a production application.  However, I think
+what I was able was a decent v1.  Here is a list of things I would build on in v2.
+
+* I would orchestrate this using a dockerized Apache Airflow deployment.
+* I would spend more time cleansing the data.  I did some regex parsing, but noticed some
+records looked "dirty" (i.e. movie records with no movie id).  I chose to spend my time developing
+the core implementation for this.
+* I would write some unit tests and integration tests.

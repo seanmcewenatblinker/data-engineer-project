@@ -3,7 +3,7 @@
 
 Given that the requirements were to design a data model that 
 serves as a source to a REST API, I designed a transactional normalized
-schema.  This gives us more flexibility to create different endpoints that 
+schema.  This gives me more flexibility to create different endpoints that 
 return data in various different structures.
 
 See picture below.  Please do note I have not included all of the columns in each table 
@@ -62,8 +62,8 @@ Beginning with the data model, I have found, in my experience, that relational d
 for creating various API endpoints.  I would design the API similarly to how the data model is designed. 
 For example, I could create more flexible API endpoints that won't take too much incremental work on my end.
 
-My main movies API endpoint to pull movies with main metadata from the movies relation and 
-possibly the various movie_<RELATIONSHIP> tables could be:
+My main movies API endpoint to pull movies with main metadata from the movies relation (and 
+possibly the various movie_RELATIONSHIP tables) could be:
 ```bash
 /api/v1/movies/{movie_id}/movies.json
 ```
@@ -169,10 +169,11 @@ so I could potentially parallelize the load if the data files got large enough.
     
 ##### Follow-up: If I had more time
 I wasn't able to do everything I would want in building a production application.  However, I think
-what I was able was a decent v1.  Here is a list of things I would build on in v2.
+what I was able to produce was a decent v1.  Here is a list of things I would build on in v2.
 
 * I would orchestrate this using a dockerized Apache Airflow deployment.
 * I would spend more time cleansing the data.  I did some regex parsing, but noticed some
 records looked "dirty" (i.e. movie records with no movie id).  I chose to spend my time developing
 the core implementation for this.
 * I would write some unit tests and integration tests.
+* I would write this in Scala and created a configurable JAR.
